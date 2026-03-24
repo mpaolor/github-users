@@ -1,6 +1,6 @@
 const BASE_URL = "https://api.github.com";
 
-async function request<T>(path: string, options?: RequestInit): Promise<T> {
+async function fetchRequest<T>(path: string, options?: RequestInit): Promise<T> {
   // Request interceptor — add headers, log outgoing requests, etc.
   console.log(`[http] --> ${options?.method ?? "GET"} ${BASE_URL}${path}`);
 
@@ -28,5 +28,5 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 
 export const http = {
   get: <T>(path: string, options?: RequestInit) =>
-    request<T>(path, { ...options, method: "GET" }),
+    fetchRequest<T>(path, { ...options, method: "GET" }),
 };

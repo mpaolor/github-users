@@ -1,4 +1,8 @@
-import type { GithubUserDetail, GithubUserSummary, SearchState } from "../types";
+import type {
+  GithubUserDetail,
+  GithubUserSummary,
+  SearchState,
+} from "../types";
 import { useEffect, useRef, useState } from "react";
 
 import { http } from "../lib/http";
@@ -6,29 +10,33 @@ import { http } from "../lib/http";
 const MIN_CHARS = 3;
 const DEBOUNCE_MS = 300;
 
-export function useGithubSearch() {
-  const [state, setState] = useState<SearchState>({
+export function startGithubService() {
+  const [ghServiceState, setGhServiceState] = useState<SearchState>({
     query: "",
     suggestions: [],
     profile: null,
-    loadingSuggestions: false,
-    loadingProfile: false,
+    isLoadingSuggestions: false,
+    isLoadingProfile: false,
     error: null,
   });
 
   // When true, the next query change will not trigger a suggestions fetch.
   // Used to prevent the dropdown reappearing after the user selects a suggestion.
-  const skipNextSuggestions = useRef<boolean>(false);
+  const skipNextSuggestionsRef = useRef<boolean>(false);
 
   // Reactively fetch suggestions whenever query changes
   useEffect(() => {
-    if (skipNextSuggestions.current) {
-      skipNextSuggestions.current = false;
+    if (skipNextSuggestionsRef.current) {
+      skipNextSuggestionsRef.current = false;
       return;
     }
 
-    if (state.query.length < MIN_CHARS) {
-      setState((prev) => ({ ...prev, suggestions: [], loadingSuggestions: false }));
+    if (ghServiceState.query.length < MIN_CHARS) {
+      setGhServiceState((prev) => ({
+        ...prev,
+        suggestions: [],
+        isLoadingSuggestions: false,
+      }));
       return;
     }
 
@@ -36,24 +44,28 @@ export function useGithubSearch() {
 
     // Debounce — wait before firing the request
     const timer = setTimeout(async () => {
-      setState((prev) => ({ ...prev, loadingSuggestions: true, error: null }));
+      setGhServiceState((prev) => ({
+        ...prev,
+        isLoadingSuggestions: true,
+        error: null,
+      }));
 
       try {
         const data = await http.get<{ items: GithubUserSummary[] }>(
-          `/search/users?q=${encodeURIComponent(state.query)}&per_page=10`,
-          { signal: controller.signal }
+          `/search/users?q=${encodeURIComponent(ghServiceState.query)}&per_page=10`,
+          { signal: controller.signal },
         );
 
-        setState((prev) => ({
+        setGhServiceState((prev) => ({
           ...prev,
           suggestions: data.items ?? [],
-          loadingSuggestions: false,
+          isLoadingSuggestions: false,
         }));
       } catch (err) {
         if ((err as Error).name === "AbortError") return;
-        setState((prev) => ({
+        setGhServiceState((prev) => ({
           ...prev,
-          loadingSuggestions: false,
+          isLoadingSuggestions: false,
           error: "Failed to fetch suggestions.",
         }));
       }
@@ -64,36 +76,36 @@ export function useGithubSearch() {
       clearTimeout(timer);
       controller.abort();
     };
-  }, [state.query]);
+  }, [ghServiceState.query]);
 
   // Explicit user action — load a full profile
   async function selectUser(username: string): Promise<void> {
     // Setting the query here would normally trigger the suggestions useEffect.
     // We flag it to skip so the dropdown doesn't reappear after selection.
-    skipNextSuggestions.current = true;
+    skipNextSuggestionsRef.current = true;
 
-    setState((prev) => ({
+    setGhServiceState((prev) => ({
       ...prev,
       query: username,
       suggestions: [],
-      loadingProfile: true,
+      isLoadingProfile: true,
       error: null,
     }));
 
     try {
       const profile = await http.get<GithubUserDetail>(
-        `/users/${encodeURIComponent(username)}`
+        `/users/${encodeURIComponent(username)}`,
       );
 
-      setState((prev) => ({
+      setGhServiceState((prev) => ({
         ...prev,
         profile,
-        loadingProfile: false,
+        isLoadingProfile: false,
       }));
     } catch (err) {
-      setState((prev) => ({
+      setGhServiceState((prev) => ({
         ...prev,
-        loadingProfile: false,
+        isLoadingProfile: false,
         profile: null,
         error: (err as Error).message,
       }));
@@ -101,8 +113,8 @@ export function useGithubSearch() {
   }
 
   function setQuery(query: string): void {
-    setState((prev) => ({ ...prev, query }));
+    setGhServiceState((prev) => ({ ...prev, query }));
   }
 
-  return { state, setQuery, selectUser };
+  return { state: ghServiceState, setQuery, selectUser };
 }

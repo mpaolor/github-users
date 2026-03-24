@@ -27,7 +27,7 @@ export interface SearchState {
   query: string;
   suggestions: GithubUserSummary[];
   profile: GithubUserDetail | null;
-  loadingSuggestions: boolean;
-  loadingProfile: boolean;
+  isLoadingSuggestions: boolean;
+  isLoadingProfile: boolean;
   error: string | null;
 }
