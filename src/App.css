@@ -1,0 +1,102 @@
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap');
+
+/* ── Design tokens ─────────────────────────────────── */
+:root {
+  --gh-bg:           #0d1117;
+  --gh-surface:      #161b22;
+  --gh-surface-hover:#1c2128;
+  --gh-border:       #30363d;
+  --gh-text:         #e6edf3;
+  --gh-muted:        #8b949e;
+  --gh-accent:       #58a6ff;
+}
+
+/* ── Base reset ────────────────────────────────────── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  background-color: var(--gh-bg);
+  color: var(--gh-text);
+  font-family: 'JetBrains Mono', monospace;
+  margin: 0;
+}
+
+/* ── Layout ────────────────────────────────────────── */
+.app-wrapper {
+  min-height: 100vh;
+  padding: 48px 0 80px;
+}
+
+.app-container {
+  max-width: 680px;
+}
+
+/* ── Header ────────────────────────────────────────── */
+.app-header {
+  text-align: center;
+  margin-bottom: 36px;
+}
+
+.app-header__icon {
+  font-size: 2.8rem;
+  color: var(--gh-text);
+  display: block;
+  margin-bottom: 12px;
+}
+
+.app-header__title {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--gh-text);
+  margin: 0 0 6px;
+  letter-spacing: -0.02em;
+}
+
+.app-header__subtitle {
+  font-size: 0.8rem;
+  color: var(--gh-muted);
+  margin: 0;
+  letter-spacing: 0.05em;
+}
+
+/* ── Search area wrapper (positions the dropdown) ──── */
+.app-search-area {
+  position: relative;
+  margin-bottom: 28px;
+}
+
+/* ── Error alert ───────────────────────────────────── */
+.app-error {
+  background-color: rgba(248, 81, 73, 0.1);
+  border-color: rgba(248, 81, 73, 0.4);
+  color: #f85149;
+  font-size: 0.85rem;
+  border-radius: 8px;
+  margin-bottom: 24px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ── Empty state ───────────────────────────────────── */
+.app-empty {
+  text-align: center;
+  padding: 64px 0;
+  color: var(--gh-muted);
+}
+
+.app-empty__icon {
+  font-size: 3rem;
+  display: block;
+  margin-bottom: 16px;
+  opacity: 0.4;
+}
+
+.app-empty p {
+  font-size: 0.85rem;
+  margin: 0;
+}
