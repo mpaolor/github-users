@@ -57,16 +57,46 @@ npm install
 npm install bootstrap bootstrap-icons
 ```
 
-**3. Copy the source files**
+**3. Delete Vite's placeholder files**
+
+The template generates several files you don't need. Remove them:
+
+```bash
+rm src/App.css           # Vite's default styles — yours replaces it
+rm src/index.css         # Global reset — Bootstrap handles this instead
+rm -rf src/assets/       # Entire assets folder (react.svg, vite.svg, hero.png — none are used)
+```
+
+**4. Copy the source files**
 
 Replace the contents of `src/` with the files from this project, keeping the folder structure above intact.
 
-**4. Add Bootstrap imports to `src/main.tsx`**
+**5. Edit `src/main.tsx`**
+
+Remove the `import './index.css'` line (you just deleted that file), and add the Bootstrap imports at the top:
 
 ```ts
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap-icons/font/bootstrap-icons.css';
 ```
+
+Your final `src/main.tsx` should look like this:
+
+```ts
+import { StrictMode } from 'react';
+import { createRoot } from 'react-dom/client';
+import 'bootstrap/dist/css/bootstrap.min.css';
+import 'bootstrap-icons/font/bootstrap-icons.css';
+import App from './App.tsx';
+
+createRoot(document.getElementById('root')!).render(
+  <StrictMode>
+    <App />
+  </StrictMode>
+);
+```
+
+> **Leave these alone:** `index.html`, `vite.config.ts`, `tsconfig.json`, and `tsconfig.app.json` require no changes.
 
 ---
 
