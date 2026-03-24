@@ -26,7 +26,7 @@ src/
 │   └── http.ts               # Fetch wrapper (request/response interceptor)
 │
 ├── hooks/
-│   └── useGithubSearch.ts    # All GitHub API logic + AbortController
+│   └── useGithubSearch.ts    # All GitHub API logic, debounce, AbortController, state
 │
 └── components/
     ├── SearchBar.tsx          # Input + Search button
@@ -124,27 +124,51 @@ npm run preview
 ### Search flow
 
 1. The user types into the search box.
-2. Once 3 or more characters are entered, a debounced call (300ms) fires against the GitHub search API.
+2. Once 3 or more characters are entered, a debounced call (300ms) fires automatically against the GitHub search API.
 3. Up to 10 matching usernames appear in a dropdown below the input.
-4. Clicking a suggestion — or pressing Enter / clicking the Search button — loads the full user profile.
+4. Clicking a suggestion — or pressing Enter / clicking the Search button — loads the full user profile and dismisses the dropdown.
 
-### Request cancellation
+### State ownership
 
-Every keystroke that triggers a new suggestions request first cancels any previous in-flight request using the browser's `AbortController` API:
+All state lives inside `useGithubSearch` — including the query. `App.tsx` only calls `setQuery` when the input changes and `selectUser` when a user is chosen. This keeps the component thin and the logic in one place.
+
+### Debounce and request cancellation
+
+Both are handled inside a single `useEffect` that reacts to query changes. On every keystroke, the cleanup function runs first, cancelling both the pending debounce timer and any in-flight request via `AbortController`:
 
 ```ts
-// Cancel the previous request before starting a new one
-if (suggestionsAbortRef.current) {
-  suggestionsAbortRef.current.abort();
-}
+useEffect(() => {
+  const controller = new AbortController();
 
-const controller = new AbortController();
-suggestionsAbortRef.current = controller;
+  const timer = setTimeout(async () => {
+    await http.get(`/search/users?q=${query}`, { signal: controller.signal });
+  }, 300);
 
-await http.get(url, { signal: controller.signal });
+  // Runs before the next effect fires — cancels timer and request
+  return () => {
+    clearTimeout(timer);
+    controller.abort();
+  };
+}, [query]);
 ```
 
-This prevents a common bug where a slow earlier response arrives after a faster later one, overwriting the correct results with stale data.
+This prevents two bugs at once: firing too many requests while the user is still typing, and stale responses from slower earlier requests overwriting fresher results.
+
+### Preventing the dropdown from reappearing after selection
+
+When `selectUser` is called it updates the query to the selected username, which would normally re-trigger the suggestions `useEffect` and repopulate the dropdown. A `skipNextSuggestions` ref is set to `true` just before the query update, causing the effect to skip the fetch for that one change and reset the flag immediately after:
+
+```ts
+// In selectUser:
+skipNextSuggestions.current = true;
+setState((prev) => ({ ...prev, query: username, suggestions: [] }));
+
+// At the top of the useEffect:
+if (skipNextSuggestions.current) {
+  skipNextSuggestions.current = false;
+  return;
+}
+```
 
 ### The fetch wrapper (`src/lib/http.ts`)
 
