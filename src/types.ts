@@ -24,6 +24,7 @@ export interface GithubUserDetail {
 }
 
 export interface SearchState {
+  query: string;
   suggestions: GithubUserSummary[];
   profile: GithubUserDetail | null;
   loadingSuggestions: boolean;

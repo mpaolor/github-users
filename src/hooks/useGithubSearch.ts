@@ -1,11 +1,14 @@
-import { useState, useRef, useCallback } from "react";
-import type { GithubUserSummary, GithubUserDetail, SearchState } from "../types";
+import type { GithubUserDetail, GithubUserSummary, SearchState } from "../types";
+import { useEffect, useState } from "react";
+
 import { http } from "../lib/http";
 
 const MIN_CHARS = 3;
+const DEBOUNCE_MS = 300;
 
 export function useGithubSearch() {
   const [state, setState] = useState<SearchState>({
+    query: "",
     suggestions: [],
     profile: null,
     loadingSuggestions: false,
@@ -13,58 +16,54 @@ export function useGithubSearch() {
     error: null,
   });
 
-  // Ref to hold the AbortController for the suggestions request
-  const suggestionsAbortRef = useRef<AbortController | null>(null);
-
-  const fetchSuggestions = useCallback(async (query: string) => {
-    // Cancel any in-flight suggestions request
-    if (suggestionsAbortRef.current) {
-      suggestionsAbortRef.current.abort();
-    }
-
-    if (query.length < MIN_CHARS) {
+  // Reactively fetch suggestions whenever query changes
+  useEffect(() => {
+    if (state.query.length < MIN_CHARS) {
       setState((prev) => ({ ...prev, suggestions: [], loadingSuggestions: false }));
       return;
     }
 
     const controller = new AbortController();
-    suggestionsAbortRef.current = controller;
 
-    setState((prev) => ({ ...prev, loadingSuggestions: true, error: null }));
+    // Debounce — wait before firing the request
+    const timer = setTimeout(async () => {
+      setState((prev) => ({ ...prev, loadingSuggestions: true, error: null }));
 
-    try {
-      const data = await http.get<{ items: GithubUserSummary[] }>(
-        `/search/users?q=${encodeURIComponent(query)}&per_page=10`,
-        { signal: controller.signal }
-      );
-      const suggestions: GithubUserSummary[] = data.items ?? [];
+      try {
+        const data = await http.get<{ items: GithubUserSummary[] }>(
+          `/search/users?q=${encodeURIComponent(state.query)}&per_page=10`,
+          { signal: controller.signal }
+        );
 
-      setState((prev) => ({
-        ...prev,
-        suggestions,
-        loadingSuggestions: false,
-      }));
-    } catch (err) {
-      if ((err as Error).name === "AbortError") return; // Ignore cancelled requests
-      setState((prev) => ({
-        ...prev,
-        loadingSuggestions: false,
-        error: "Failed to fetch suggestions.",
-      }));
-    }
-  }, []);
+        setState((prev) => ({
+          ...prev,
+          suggestions: data.items ?? [],
+          loadingSuggestions: false,
+        }));
+      } catch (err) {
+        if ((err as Error).name === "AbortError") return;
+        setState((prev) => ({
+          ...prev,
+          loadingSuggestions: false,
+          error: "Failed to fetch suggestions.",
+        }));
+      }
+    }, DEBOUNCE_MS);
 
-  const fetchProfile = useCallback(async (username: string) => {
-    // Cancel any in-flight suggestions request when committing to a profile
-    if (suggestionsAbortRef.current) {
-      suggestionsAbortRef.current.abort();
-    }
+    // Cleanup — cancel both the debounce timer and any in-flight request
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [state.query]);
 
+  // Explicit user action — load a full profile
+  async function selectUser(username: string): Promise<void> {
     setState((prev) => ({
       ...prev,
+      query: username,
       suggestions: [],
       loadingProfile: true,
-      loadingSuggestions: false,
       error: null,
     }));
 
@@ -86,11 +85,11 @@ export function useGithubSearch() {
         error: (err as Error).message,
       }));
     }
-  }, []);
+  }
 
-  const clearSuggestions = useCallback(() => {
-    setState((prev) => ({ ...prev, suggestions: [] }));
-  }, []);
+  function setQuery(query: string): void {
+    setState((prev) => ({ ...prev, query }));
+  }
 
-  return { state, fetchSuggestions, fetchProfile, clearSuggestions };
+  return { state, setQuery, selectUser };
 }

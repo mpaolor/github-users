@@ -1,38 +1,12 @@
-import { useState, useCallback, useRef } from "react";
-import { useGithubSearch } from "./hooks/useGithubSearch";
+import "./App.css";
+
 import SearchBar from "./components/SearchBar";
 import Suggestions from "./components/Suggestions";
 import UserProfile from "./components/UserProfile";
-import "./App.css";
-
-const DEBOUNCE_MS = 300;
+import { useGithubSearch } from "./hooks/useGithubSearch";
 
 export default function App() {
-  const [query, setQuery] = useState<string>("");
-  const { state, fetchSuggestions, fetchProfile, clearSuggestions } = useGithubSearch();
-  const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const handleQueryChange = useCallback((value: string) => {
-    setQuery(value);
-    if (debounceTimer.current) clearTimeout(debounceTimer.current);
-    debounceTimer.current = setTimeout(() => {
-      fetchSuggestions(value.trim());
-    }, DEBOUNCE_MS);
-  }, [fetchSuggestions]);
-
-  const handleSelect = useCallback((login: string) => {
-    setQuery(login);
-    clearSuggestions();
-    fetchProfile(login);
-  }, [fetchProfile, clearSuggestions]);
-
-  const handleSearch = useCallback((login: string) => {
-    if (debounceTimer.current) clearTimeout(debounceTimer.current);
-    clearSuggestions();
-    fetchProfile(login);
-  }, [fetchProfile, clearSuggestions]);
-
-  const isLoading = state.loadingSuggestions || state.loadingProfile;
+  const { state, setQuery, selectUser } = useGithubSearch();
 
   return (
     <div className="app-wrapper">
@@ -46,14 +20,14 @@ export default function App() {
 
         <div className="app-search-area">
           <SearchBar
-            value={query}
-            loading={isLoading}
-            onChange={handleQueryChange}
-            onSearch={handleSearch}
+            value={state.query}
+            loading={state.loadingSuggestions || state.loadingProfile}
+            onChange={setQuery}
+            onSearch={selectUser}
           />
           <Suggestions
             suggestions={state.suggestions}
-            onSelect={handleSelect}
+            onSelect={selectUser}
           />
         </div>
 
