@@ -1,5 +1,5 @@
 import type { GithubUserDetail, GithubUserSummary, SearchState } from "../types";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { http } from "../lib/http";
 
@@ -16,8 +16,17 @@ export function useGithubSearch() {
     error: null,
   });
 
+  // When true, the next query change will not trigger a suggestions fetch.
+  // Used to prevent the dropdown reappearing after the user selects a suggestion.
+  const skipNextSuggestions = useRef<boolean>(false);
+
   // Reactively fetch suggestions whenever query changes
   useEffect(() => {
+    if (skipNextSuggestions.current) {
+      skipNextSuggestions.current = false;
+      return;
+    }
+
     if (state.query.length < MIN_CHARS) {
       setState((prev) => ({ ...prev, suggestions: [], loadingSuggestions: false }));
       return;
@@ -59,6 +68,10 @@ export function useGithubSearch() {
 
   // Explicit user action — load a full profile
   async function selectUser(username: string): Promise<void> {
+    // Setting the query here would normally trigger the suggestions useEffect.
+    // We flag it to skip so the dropdown doesn't reappear after selection.
+    skipNextSuggestions.current = true;
+
     setState((prev) => ({
       ...prev,
       query: username,
