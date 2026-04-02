@@ -1,5 +1,6 @@
 {
   "name": "github-users",
+  "homepage": "https://mpaolor.github.io/github-users",
   "private": true,
   "version": "0.0.0",
   "type": "module",
