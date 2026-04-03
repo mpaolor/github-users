@@ -1,6 +1,6 @@
-import React from "react";
-import type { GithubUserSummary } from "../types";
 import "./Suggestions.css";
+
+import type { GithubUserSummary } from "../types";
 
 interface SuggestionsProps {
   suggestions: GithubUserSummary[];

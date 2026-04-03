@@ -1,6 +1,6 @@
-import React from "react";
-import type { GithubUserDetail } from "../types";
 import "./UserProfile.css";
+
+import type { GithubUserDetail } from "../types";
 
 interface UserProfileProps {
   profile: GithubUserDetail;
